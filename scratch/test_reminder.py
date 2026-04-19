@@ -18,7 +18,7 @@ resp = requests.post(URL, json={
 print("Response:", resp.json())
 
 print("Waiting 10 seconds...")
-time.sleep(10)
+time.sleep(60)
 
 print("Checking notifications...")
 resp = requests.get(GET_URL)

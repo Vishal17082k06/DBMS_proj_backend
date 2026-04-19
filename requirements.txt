@@ -5,3 +5,9 @@ psycopg2-binary
 python-dotenv
 SpeechRecognition
 pyaudio
+fastapi
+uvicorn
+google-auth
+google-auth-oauthlib
+google-api-python-client
+jinja2

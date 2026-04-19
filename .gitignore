@@ -1,0 +1,25 @@
+# Environments
+.env
+venv/
+env/
+ENV/
+
+# Secrets
+token.json
+credentials.json
+*.json
+!composer.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# IDEs
+.vscode/
+.idea/
+
+# DBMS/Logs
+*.log
+*.sqlite
