@@ -1,0 +1,70 @@
+.ar-hud-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  background: black;
+  overflow: hidden;
+  font-family: 'Segoe UI', 'Courier New', monospace;
+  cursor: none;
+}
+
+/* Make the video fill the entire spectacle view */
+video {
+  width: 100vw !important;
+  height: 100vh !important;
+  object-fit: cover;
+}
+
+.floating-hud {
+  position: absolute;
+  top: 30px;
+  width: 250px;
+  background: transparent;
+  z-index: 100;
+}
+
+.left-hud { left: 40px; }
+.right-hud { right: 40px; }
+
+.sidebar {
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+.sidebar h3 {
+  font-size: 10px;
+  color: #00f2ff;
+  letter-spacing: 4px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid rgba(0, 242, 255, 0.5);
+  text-shadow: 0 0 10px #00f2ff;
+}
+
+.notification-card {
+  background: rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(5px);
+  padding: 10px 15px;
+  border: 1px solid rgba(0, 242, 255, 0.3);
+  border-left: 3px solid #00f2ff !important;
+  border-radius: 4px;
+  color: #00f2ff;
+  font-size: 11px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  box-shadow: 0 0 15px rgba(0, 242, 255, 0.1);
+}
+
+.system-footer {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 10px;
+  letter-spacing: 2px;
+}
+
+.status-indicator {
+    border-color: #00f2ff !important;
+    color: #00f2ff !important;
+}
