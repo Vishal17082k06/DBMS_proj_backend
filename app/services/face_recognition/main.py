@@ -122,11 +122,13 @@ def _log_interaction(person_id: int, summary: str = "", emotion: str = "Neutral"
 # Endpoints
 # ---------------------------------------------------------------------------
 
+from fastapi import BackgroundTasks
+
 @app.post("/identify")
-async def identify(file: UploadFile = File(...)):
+async def identify(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     """
     Identify a person from a webcam frame.
-    - Confirmed match  → returns details + logs to DB
+    - Confirmed match  → returns details + logs to DB + starts recording conversation
     - Uncertain match  → returns details (no log)
     - Unknown          → returns unknown status
     """
@@ -164,6 +166,15 @@ async def identify(file: UploadFile = File(...)):
         response["interaction_logged"] = interaction_id is not None
         response["interaction_id"] = interaction_id
         print(f"[FACE] {status.upper()} — {details['name'] if details else pid} | score={score:.4f} | interaction_id={interaction_id}")
+        
+        # Start voice recording asynchronously via BackgroundTasks, avoiding multiple overlapping threads
+        if status == "confirmed":
+            import app.services.voice_app.recorder_util as ru
+            if not ru.IS_RECORDING and not ru.IS_SUMMARIZING:
+                print("🚀 Queuing Voice Recording task in background...")
+                background_tasks.add_task(ru.record_and_transcribe)
+            else:
+                pass # Skipping silently instead of spamming the console 
 
     else:
         response["message"] = f"Unknown person. Highest score: {score:.4f}"
@@ -212,6 +223,7 @@ async def register(
 
 @app.post("/register-new")
 async def register_new(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     name: str = Form(...),
     relationship: str = Form(...),
@@ -254,6 +266,15 @@ async def register_new(
         conn.commit()
 
         print(f"[REGISTER] New person: {name} ({relationship}) | personid={person_id}")
+        
+        # Start voice recording asynchronously via BackgroundTasks, avoiding overlapping threads
+        import app.services.voice_app.recorder_util as ru
+        if not ru.IS_RECORDING and not ru.IS_SUMMARIZING:
+            print(f"🚀 Queuing Voice Recording task in background for {name}...")
+            background_tasks.add_task(ru.record_and_transcribe)
+        else:
+            pass # Skip silently
+            
         return JSONResponse({
             "message": f"{name} registered successfully.",
             "personid": person_id,
@@ -266,6 +287,12 @@ async def register_new(
         cur.close()
         conn.close()
 
+
+
+@app.get("/system-status")
+def system_status():
+    import app.services.voice_app.recorder_util as ru
+    return {"is_recording": ru.IS_RECORDING, "is_summarizing": ru.IS_SUMMARIZING}
 
 
 def health():

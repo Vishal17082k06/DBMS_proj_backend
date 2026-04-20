@@ -23,7 +23,9 @@ function App() {
   const pendingFrameRef = useRef(null);     // frame blob for registration
   const registeredNamesRef = useRef(new Set()); // names registered this session
 
-  // ── Reminders polling ──────────────────────────────────
+  // ── Reminders & System Status polling ──────────────────────────────────
+  const [sysStatus, setSysStatus] = useState({ is_recording: false, is_summarizing: false });
+
   useEffect(() => {
     const fetchReminders = async () => {
       try {
@@ -34,9 +36,27 @@ function App() {
         }
       } catch (_) {}
     };
+    
+    const fetchSystemStatus = async () => {
+      try {
+        const res = await fetch("http://127.0.0.1:8004/system-status");
+        if (res.ok) {
+          const data = await res.json();
+          setSysStatus({ is_recording: data.is_recording, is_summarizing: data.is_summarizing });
+        }
+      } catch (_) {}
+    };
+
     fetchReminders();
-    const id = setInterval(fetchReminders, 30000);
-    return () => clearInterval(id);
+    fetchSystemStatus();
+
+    const idReminders = setInterval(fetchReminders, 30000);
+    const idStatus = setInterval(fetchSystemStatus, 1500); // Check recording status frequently
+
+    return () => {
+      clearInterval(idReminders);
+      clearInterval(idStatus);
+    };
   }, []);
 
   // ── Face detection callback ────────────────────────────
@@ -125,8 +145,18 @@ function App() {
         <NotificationBar title="REMINDERS" items={reminders} />
       </div>
 
-      <div className="system-footer">
-        REC ● LIVE | SYSTEM: STABLE | AG-OS v1.0
+      <div className="system-footer" style={{ display: 'flex', gap: '15px' }}>
+        <span>SYSTEM: STABLE | AG-OS v1.0</span>
+        {sysStatus.is_recording && (
+          <span style={{ color: '#ff4444', fontWeight: 'bold', animation: 'pulse 1.5s infinite' }}>
+            🎙️ REC ● LIVE
+          </span>
+        )}
+        {sysStatus.is_summarizing && (
+          <span style={{ color: '#f0c040', fontWeight: 'bold', animation: 'pulse 1.5s infinite' }}>
+            ⚙️ SUMMARIZING...
+          </span>
+        )}
       </div>
 
       {/* REGISTRATION MODAL */}

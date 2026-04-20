@@ -17,12 +17,10 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Mount the static directory for the Frontend Dashboard
 import os
 os.makedirs("app/static", exist_ok=True)
 app.mount("/dashboard", StaticFiles(directory="app/static", html=True), name="static")
 
-# Allow all origins during development (tighten for production)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
