@@ -124,6 +124,9 @@ def run():
         print(f"   Last Visit    : {details['last_date'] or 'No previous visit'}")
         print(f"   Last Summary  : {details['last_summary'] or 'None'}")
         print(f"   Last Emotion  : {details['last_emotion'] or 'None'}")
+        print("\n--- Starting Conversation Recording ---")
+        from app.services.voice_app.recorder_util import record_and_transcribe
+        record_and_transcribe()
 
     elif status == "uncertain":
         details = fetch_details(person_id)
@@ -133,12 +136,22 @@ def run():
         ans = input("\n   Is this correct? (y/n): ").strip().lower()
         if ans != 'y':
             register_new_person(embedding)
+            print("\n--- Starting Conversation Recording ---")
+            from app.services.voice_app.recorder_util import record_and_transcribe
+            record_and_transcribe()
+        else:
+            print("\n--- Starting Conversation Recording ---")
+            from app.services.voice_app.recorder_util import record_and_transcribe
+            record_and_transcribe()
 
     else:
         print(f"🛑 UNKNOWN PERSON (Highest Score: {score:.4f})")
         ans = input("   Would you like to register this person? (y/n): ").strip().lower()
         if ans == 'y':
             register_new_person(embedding)
+            print("\n--- Starting Conversation Recording ---")
+            from app.services.voice_app.recorder_util import record_and_transcribe
+            record_and_transcribe()
         else:
             print("   Skipped registration.")
 

@@ -16,145 +16,107 @@ V1 does not implement authentication. All endpoints are publicly accessible.
 
 ## 1. Person Identification
 
-### `POST /api/persons/identify`
+### `POST /api/face/identify`
 
 **Called By**: Member A (Frontend/Detection)
 
-**Purpose**: Identify a person by face encoding and retrieve memory context
+**Purpose**: Detect a face from a raw image frame, compute embeddings via OpenCV/DeepFace, identify the person, and retrieve their most recent memory context.
 
 **Request Headers**:
 ```
-Content-Type: application/json
+Content-Type: multipart/form-data
 ```
 
-**Request Body**:
-```json
-{
-  "user_id": 1,
-  "encoding": [0.123, 0.456, 0.789, ...],  // 128 or 512 floats
-  "frame_timestamp": "2026-04-19T10:30:00Z"  // Optional
-}
-```
-
-**Request Schema**:
-- `user_id` (integer, required): User ID (positive integer)
-- `encoding` (array of floats, required): Face encoding vector (exactly 128 or 512 dimensions)
-- `frame_timestamp` (datetime, optional): Timestamp of the frame
+**Request Body** (Form Data):
+- `frame` (file, required): Webcam frame image (JPEG/PNG)
 
 **Response - Person Found (200 OK)**:
 ```json
 {
-  "person_id": 42,
-  "name": "Ravi Kumar",
+  "person_detected": true,
+  "match_status": "confirmed",
+  "person_name": "Ravi Kumar",
   "relationship_type": "colleague",
-  "priority_level": 3,
   "confidence": 0.87,
-  "memory_context": [
-    {
-      "date": "2026-04-15T14:30:00Z",
-      "summary": "Discussed hospital visit. Ravi seemed anxious. You promised to call him."
-    },
-    {
-      "date": "2026-04-10T09:15:00Z",
-      "summary": "Talked about work project deadlines. Ravi mentioned his daughter's graduation."
-    }
-  ]
+  "last_interaction_date": "2026-04-15T14:30:00Z",
+  "last_conversation_summary": "Discussed hospital visit. Ravi seemed anxious. You promised to call him.",
+  "last_emotion": "neutral"
 }
 ```
 
 **Response - No Match (200 OK)**:
 ```json
 {
-  "person_id": null,
-  "name": null,
+  "person_detected": true,
+  "match_status": "unknown",
+  "person_name": "Unknown Person",
   "relationship_type": null,
-  "priority_level": null,
-  "confidence": null,
-  "memory_context": []
+  "confidence": 0.45,
+  "last_interaction_date": null,
+  "last_conversation_summary": null,
+  "last_emotion": null
 }
 ```
 
 **Response Schema**:
-- `person_id` (integer | null): Matched person ID, null if no match
-- `name` (string | null): Person's name
-- `relationship_type` (string | null): Relationship type (e.g., "family", "friend", "colleague")
-- `priority_level` (integer | null): Priority level (1-5)
+- `person_detected` (boolean): True if OpenCV detected a face in the frame
+- `match_status` (string): "confirmed" (≥ 0.85), "uncertain" (0.70–0.85), or "unknown" (< 0.70)
+- `person_name` (string | null): Person's name if identified
+- `relationship_type` (string | null): Relationship type
 - `confidence` (float | null): Cosine similarity score (0.0-1.0)
-- `memory_context` (array): Last 3 interaction summaries
-  - `date` (datetime): Interaction date
-  - `summary` (string): Interaction summary text
+- `last_interaction_date` (datetime | null): Timestamp of last interaction
+- `last_conversation_summary` (string | null): Text summary from the last interaction
+- `last_emotion` (string | null): Emotion detected in the last interaction
 
 **Error Responses**:
-- `400 Bad Request`: Invalid encoding dimensions or missing required fields
-- `422 Unprocessable Entity`: Validation error (Pydantic)
+- `400 Bad Request`: Could not decode image file
+- `422 Unprocessable Entity`: Person detected but face crop failed, or could not generate embedding
 - `500 Internal Server Error`: Server error
 
-**Performance Target**: < 500ms
-
 **Notes**:
-- Cosine similarity threshold: 0.6 (configurable)
-- Returns null person_id if confidence < 0.6
-- Memory context is DB-only (no LLM calls)
-- Encoding must be exactly 128 or 512 floats
+- The backend performs OpenCV detection and DeepFace embedding calculation directly from the image frame.
 
 ---
 
 ## 2. Person Registration
 
-### `POST /api/persons/register`
+### `POST /api/face/register`
 
 **Called By**: Member A (Frontend/Detection)
 
-**Purpose**: Register a new unknown person with face encoding
+**Purpose**: Register a new face embedding for an existing person ID via an image frame.
 
 **Request Headers**:
 ```
-Content-Type: application/json
+Content-Type: multipart/form-data
 ```
 
-**Request Body**:
+**Request Body** (Form Data):
+- `frame` (file, required): Clear front-facing photo (JPEG/PNG)
+- `personid` (integer, required): ID of the existing person in `public.knownperson`
+
+**Response (200 OK)**:
 ```json
 {
-  "user_id": 1,
-  "name": "John Doe",
-  "relationship_type": "friend",
-  "priority_level": 3,
-  "encoding": [0.123, 0.456, 0.789, ...],  // 128 or 512 floats
-  "confidence_score": 0.95
-}
-```
-
-**Request Schema**:
-- `user_id` (integer, required): User ID (positive integer)
-- `name` (string, required): Person's name (1-100 characters)
-- `relationship_type` (string, optional): Relationship type (max 50 characters)
-- `priority_level` (integer, optional): Priority level (1-5)
-- `encoding` (array of floats, required): Face encoding vector (exactly 128 or 512 dimensions)
-- `confidence_score` (float, optional): Confidence score from face detection (0.0-1.0)
-
-**Response (201 Created)**:
-```json
-{
-  "person_id": 43,
-  "message": "Person registered successfully"
+  "message": "Face registered successfully",
+  "personid": 43,
+  "faceencodingid": 105
 }
 ```
 
 **Response Schema**:
-- `person_id` (integer): Newly created person ID
 - `message` (string): Success message
+- `personid` (integer): Linked person ID
+- `faceencodingid` (integer): ID of the newly generated face embedding
 
 **Error Responses**:
-- `400 Bad Request`: Invalid encoding dimensions or missing required fields
-- `422 Unprocessable Entity`: Validation error
-- `500 Internal Server Error`: Server error
-
-**Performance Target**: < 300ms
+- `400 Bad Request`: Could not decode image file
+- `422 Unprocessable Entity`: No person detected in frame, crop failed, or embedding generation failed
+- `500 Internal Server Error`: DB insertion failure
 
 **Notes**:
-- Creates person in `knownperson` table
-- Stores face encoding in `faceencoding` table as JSON text
-- Links person to user via `userknownperson` junction table
+- Generates 512-dimension DeepFace embedding arrays and stores them in Postgres `faceencoding` as JSON data.
+- User *must* have a valid `personid` created before calling this endpoint.
 
 ---
 
