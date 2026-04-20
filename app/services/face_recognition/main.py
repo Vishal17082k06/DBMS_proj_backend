@@ -167,14 +167,12 @@ async def identify(background_tasks: BackgroundTasks, file: UploadFile = File(..
         response["interaction_id"] = interaction_id
         print(f"[FACE] {status.upper()} — {details['name'] if details else pid} | score={score:.4f} | interaction_id={interaction_id}")
         
-        # Start voice recording asynchronously via BackgroundTasks, avoiding multiple overlapping threads
-        if status == "confirmed":
+        # Only start a NEW voice recording if this is a fresh interaction (not in cooldown)
+        if status == "confirmed" and interaction_id is not None:
             import app.services.voice_app.recorder_util as ru
             if not ru.IS_RECORDING and not ru.IS_SUMMARIZING:
-                print("🚀 Queuing Voice Recording task in background...")
-                background_tasks.add_task(ru.record_and_transcribe)
-            else:
-                pass # Skipping silently instead of spamming the console 
+                print(f"🚀 Queuing Voice Recording task for Interaction {interaction_id}...")
+                background_tasks.add_task(ru.record_and_transcribe, interaction_id=interaction_id)
 
     else:
         response["message"] = f"Unknown person. Highest score: {score:.4f}"
@@ -267,11 +265,14 @@ async def register_new(
 
         print(f"[REGISTER] New person: {name} ({relationship}) | personid={person_id}")
         
+        # Log the initial interaction for the brand new person
+        interaction_id = _log_interaction(person_id)
+
         # Start voice recording asynchronously via BackgroundTasks, avoiding overlapping threads
         import app.services.voice_app.recorder_util as ru
         if not ru.IS_RECORDING and not ru.IS_SUMMARIZING:
             print(f"🚀 Queuing Voice Recording task in background for {name}...")
-            background_tasks.add_task(ru.record_and_transcribe)
+            background_tasks.add_task(ru.record_and_transcribe, interaction_id=interaction_id)
         else:
             pass # Skip silently
             

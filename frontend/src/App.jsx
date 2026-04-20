@@ -51,7 +51,7 @@ function App() {
     fetchSystemStatus();
 
     const idReminders = setInterval(fetchReminders, 30000);
-    const idStatus = setInterval(fetchSystemStatus, 1500); // Check recording status frequently
+    const idStatus = setInterval(fetchSystemStatus, 5000); // Check status every 5 seconds instead of 1.5s
 
     return () => {
       clearInterval(idReminders);
@@ -85,7 +85,11 @@ function App() {
     if (result.lastVisit)   message += ` | Last: ${result.lastVisit}`;
     if (result.lastEmotion) message += ` | ${result.lastEmotion}`;
 
-    setFaceLogs(prev => [{ id: Date.now(), text: message }, ...prev].slice(0, 6));
+    setFaceLogs(prev => {
+      // Remove any existing log for this specific person to keep the list unique
+      const filtered = prev.filter(log => !log.text.includes(`✅ ${name}`));
+      return [{ id: Date.now(), text: message }, ...filtered].slice(0, 6);
+    });
   }, [showModal]);
 
   // ── Registration submit ────────────────────────────────

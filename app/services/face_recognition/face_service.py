@@ -43,18 +43,22 @@ def _get_yolo_model() -> YOLO:
 def get_face_cascade():
     global _face_cascade
     if _face_cascade is None:
-        # Try OpenCV built-in path first
-        path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
-        _face_cascade = cv2.CascadeClassifier(path)
-        # Fallback: use the one in project root
-        if _face_cascade.empty():
-            import os
-            root_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'haarcascade_frontalface_default.xml')
-            root_path = os.path.abspath(root_path)
+        # 1. Try OpenCV standard path
+        try:
+            path = os.path.join(cv2.data.haarcascades, 'haarcascade_frontalface_default.xml')
+            _face_cascade = cv2.CascadeClassifier(path)
+        except:
+            pass
+
+        # 2. Try project root fallback
+        if _face_cascade is None or _face_cascade.empty():
+            root_path = os.path.abspath(os.path.join(os.getcwd(), 'haarcascade_frontalface_default.xml'))
             logger.warning(f"Built-in cascade empty, trying project root: {root_path}")
             _face_cascade = cv2.CascadeClassifier(root_path)
+
+        # 3. Last resort check
         if _face_cascade.empty():
-            logger.error("Failed to load Haar Cascade from any path. Fallback detection disabled.")
+            logger.error("Failed to load Haar Cascade. Fallback detection disabled.")
     return _face_cascade
 
 # --- Core Logic ---

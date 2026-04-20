@@ -14,6 +14,12 @@ const CameraOverlay = ({ onFaceDetected }) => {
     const webcam = webcamRef.current;
     if (!webcam || !webcam.video || webcam.video.readyState !== 4) return;
 
+    const now = Date.now();
+    // OPTIMIZATION: If any known person was identified recently, 
+    // skip the scan entirely until their 5-min cooldown (COOLDOWN_MS) expires.
+    const recentlySeen = Object.values(lastSeenRef.current).some(ts => now - ts < COOLDOWN_MS);
+    if (recentlySeen) return;
+
     // Capture frame from webcam as JPEG blob
     const canvas = document.createElement('canvas');
     const video = webcam.video;

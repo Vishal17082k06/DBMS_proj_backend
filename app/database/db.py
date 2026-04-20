@@ -41,6 +41,24 @@ def save_conversation(userid, personid, transcribed_text, summarized_text, detec
         cur.close()
         conn.close()
 
+def update_conversation_results(interactionid, transcribed_text, summarized_text):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        query = """
+            UPDATE public.conversation 
+            SET conversation = %s, summarytext = %s
+            WHERE interactionid = %s;
+        """
+        cur.execute(query, (transcribed_text, summarized_text, interactionid))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cur.close()
+        conn.close()
+
 def save_person(name, relationship_type, prioritylevel=3, notes=''):
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
